@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.11.35222.181
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "orgmodsin", "orgmodsin\orgmodsin.csproj", "{332749CA-0572-4601-BC02-2D4C2EE1E9F0}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{332749CA-0572-4601-BC02-2D4C2EE1E9F0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{332749CA-0572-4601-BC02-2D4C2EE1E9F0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{332749CA-0572-4601-BC02-2D4C2EE1E9F0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{332749CA-0572-4601-BC02-2D4C2EE1E9F0}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {44133D2E-AEAE-4BD6-98AB-8645C1862246}
+	EndGlobalSection
+EndGlobal
