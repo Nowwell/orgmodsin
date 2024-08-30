@@ -5,7 +5,7 @@ This utility goes through all of the org's metadata and reports out what metadat
 
 The number of API calls should be in the ballpark of:
 ```
-Ceilling(Number of Metadata Types / 3) + Ceiling(Number of Report Folders / 3) + Ceiling(Number of Dashboard Folders / 3) + Ceiling(Number of Email Templates Folders / 3)
+Ceiling(Number of Metadata Types / 3) + Ceiling(Number of Report Folders / 3) + Ceiling(Number of Dashboard Folders / 3) + Ceiling(Number of Email Templates Folders / 3)
 ```
 
 ## How to use:
