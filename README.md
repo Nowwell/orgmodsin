@@ -16,7 +16,7 @@ orgmodsin --alias myuser --clientid "client id" --clientsecret "client secret"
 ```
 _List the org's metadata types_
 ```
-orgmodsin --user myuser --api 61
+orgmodsin --user myuser --list --api 61
 ```
 
 _Go through all of the Org's metadata_
