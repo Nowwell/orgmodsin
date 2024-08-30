@@ -21,6 +21,12 @@ namespace orgmodsin
         private readonly static string? homePath = IsLinux ? Environment.GetEnvironmentVariable("HOME") : Environment.ExpandEnvironmentVariables("%HOMEDRIVE%%HOMEPATH%");
         private static DirectoryInfo credPath = new DirectoryInfo(Path.Combine(homePath == null? "" : homePath, DIRNAME));
 
+        private static string HTML = @"<!DOCTYPE html><html><head>
+<style>body{font-family:sans-serif;}dt{font-weight:bold;}dd{margin-bottom:10px;}div{margin-left:auto;margin-right:auto;width:500px;background-color:whitesmoke;padding:25px;border:1px solid black;border-radius:10px;}</style>
+<title>Authentication successful</title></head>
+<body><br><br><br><br><div><h1>Authentication successful</h1><p>You can now close this page.</p></div></body>
+</html>";
+
         public static bool DoesUserExist(string user)
         {
             return new FileInfo(Path.Combine(credPath.FullName, user)).Exists;
@@ -101,7 +107,7 @@ namespace orgmodsin
             HttpListenerContext context = await http.GetContextAsync();
 
             HttpListenerResponse response = context.Response;
-            string responseString = "<html><head></head><body>You can close this browser window</body></html>";
+            string responseString = HTML;
             byte[] buffer = Encoding.UTF8.GetBytes(responseString);
             response.ContentLength64 = buffer.Length;
             Stream responseOutput = response.OutputStream;
