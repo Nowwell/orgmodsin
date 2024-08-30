@@ -1,6 +1,4 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using System.Xml;
+﻿using System.Xml;
 
 namespace orgmodsin
 {
@@ -68,10 +66,6 @@ namespace orgmodsin
                 }
             }
 
-            if(string.IsNullOrEmpty(excludes) && excludes.Trim().ToLower() != "none")
-            {
-                excludes = "SControl,InstalledPackage";
-            }
             DateTime modifiedSince = DateTime.Now;
 
             if (list == false)
@@ -167,9 +161,10 @@ namespace orgmodsin
                     output.Flush();
                 }
 
+                Console.Write("Api Calls Used: {0}", apiCalls);
+
                 return;
             }
-
 
             Queue<MetadataQuery> query = CreateQueries(includeList, excludeList, mdos);
 
@@ -221,8 +216,6 @@ namespace orgmodsin
                 }
                 output.Flush();
             }
-
-
             Console.Write("Api Calls Used: {0}", apiCalls);
         }
 

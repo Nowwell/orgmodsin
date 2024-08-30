@@ -20,7 +20,7 @@ namespace orgmodsin
             string childNames = "";
             if(childXmlNames != null && childXmlNames.Length > 0)
             {
-                childNames = string.Join(",", childXmlNames);
+                childNames = string.Join(";", childXmlNames);
             }
 
             return string.Format("{0},{1},{2},{3},{4},\"{5}\"", xmlName, directoryName, suffix, inFolder, metaFile, childNames);
