@@ -2,7 +2,7 @@
   "profiles": {
     "orgmodsin": {
       "commandName": "Project",
-      "commandLineArgs": "-user devorg --api 61"
+      "commandLineArgs": "--user devorg --clientid \"3MVG9szVa2RxsqBaFfy.QEDHf2vDia__JDsaFvn0p5jldHqxf5.I_5IiwAEq1Yw3M00GPEKjbcHbQKjwwPmga\" --clientsecret \"F3112592DF897172563007F352F1FE4D414FBE0E63EEA92609899F6000AEDA57\""
     }
   }
 }

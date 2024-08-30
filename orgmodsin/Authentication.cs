@@ -6,20 +6,19 @@ using System.Web;
 using System.Security.Cryptography;
 using System.Diagnostics;
 using System.Collections.Generic;
+using System.Net.NetworkInformation;
 
 namespace orgmodsin
 {
 
     public class Authentication
     {
-        static readonly bool IsLinux = (Environment.OSVersion.Platform == PlatformID.Unix || Environment.OSVersion.Platform == PlatformID.MacOSX);
-
+        private readonly static bool IsLinux = (Environment.OSVersion.Platform == PlatformID.Unix || Environment.OSVersion.Platform == PlatformID.MacOSX);
+        private readonly static string redirectUri = "http://localhost:1717/";
         private readonly static string DIRNAME = ".orgmod";
         private readonly static string PROD_ENDPOINT = "https://login.salesforce.com";
         private readonly static string TEST_ENDPOINT = "https://test.salesforce.com";
-
-        private static string? homePath = IsLinux ? Environment.GetEnvironmentVariable("HOME") : Environment.ExpandEnvironmentVariables("%HOMEDRIVE%%HOMEPATH%");
-
+        private readonly static string? homePath = IsLinux ? Environment.GetEnvironmentVariable("HOME") : Environment.ExpandEnvironmentVariables("%HOMEDRIVE%%HOMEPATH%");
         private static DirectoryInfo credPath = new DirectoryInfo(Path.Combine(homePath == null? "" : homePath, DIRNAME));
 
         public static bool DoesUserExist(string user)
@@ -76,86 +75,65 @@ namespace orgmodsin
         {
             clientid = HttpUtility.UrlEncode(clientid);
 
-            //string state = GenerateRandomDataBase64url(32);
-            //string codeVerifier = GenerateRandomDataBase64url(32);
-            //string codeChallenge = Base64UrlEncodeNoPadding(Sha256Ascii(codeVerifier));
-            //const string codeChallengeMethod = "S256";
+            //https://github.com/googlesamples/oauth-apps-for-windows/blob/master/OAuthConsoleApp/OAuthConsoleApp/Program.cs
 
+            string state = GenerateRandomDataBase64url(32);
+            string codeVerifier = GenerateRandomDataBase64url(32);
+            string codeChallenge = Base64UrlEncodeNoPadding(Sha256Ascii(codeVerifier));
 
-            //// Creates a redirect URI using an available port on the loopback address.
-            //string redirectUri = $"http://localhost:8080/"; //{IPAddress.Loopback}:{GetRandomUnusedPort()}
+            // Creates an HttpListener to listen for requests on that redirect URI.
+            var http = new HttpListener();
+            http.Prefixes.Add(redirectUri);
+            http.Start();
 
-            //// Creates an HttpListener to listen for requests on that redirect URI.
-            //var http = new HttpListener();
-            //http.Prefixes.Add(redirectUri);
-            //http.Start();
+            string authorizationRequest = string.Format("{0}/services/oauth2/authorize?response_type=code&scope=api+web&redirect_uri={1}&client_id={2}&state={3}&code_challenge={4}",
+                PROD_ENDPOINT,
+                Uri.EscapeDataString("http://localhost:1717/"),
+                clientid,
+                state,
+                codeChallenge);
 
-            //string authorizationRequest = string.Format("{0}?response_type=code&scope=api+web%20profile&redirect_uri={1}&client_id={2}&state={3}&code_challenge={4}&code_challenge_method={5}",
-            //    PROD_ENDPOINT,
-            //    Uri.EscapeDataString(redirectUri),
-            //    clientid,
-            //    state,
-            //    codeChallenge,
-            //    codeChallengeMethod);
+            System.Diagnostics.ProcessStartInfo info = new System.Diagnostics.ProcessStartInfo();
+            info.FileName = authorizationRequest;
+            info.UseShellExecute = true;
+            System.Diagnostics.Process.Start(info);
 
+            HttpListenerContext context = await http.GetContextAsync();
 
-            //System.Diagnostics.ProcessStartInfo info = new System.Diagnostics.ProcessStartInfo();
-            //info.FileName = authorizationRequest;
-            //info.UseShellExecute = true;
+            HttpListenerResponse response = context.Response;
+            string responseString = "<html><head></head><body>You can close this browser window</body></html>";
+            byte[] buffer = Encoding.UTF8.GetBytes(responseString);
+            response.ContentLength64 = buffer.Length;
+            Stream responseOutput = response.OutputStream;
+            await responseOutput.WriteAsync(buffer, 0, buffer.Length);
+            responseOutput.Close();
+            http.Stop();
 
-            //Process p = System.Diagnostics.Process.Start(info);
+            string? code = context.Request.QueryString.Get("code");
+            string? incomingState = context.Request.QueryString.Get("state");
 
-            //var context = await http.GetContextAsync();
-
-            //var response = context.Response;
-            //string responseString = "<html><head></head><body>Please return to the app.</body></html>";
-            //byte[] buffer = Encoding.UTF8.GetBytes(responseString);
-            //response.ContentLength64 = buffer.Length;
-            //var responseOutput = response.OutputStream;
-            //await responseOutput.WriteAsync(buffer, 0, buffer.Length);
-            //responseOutput.Close();
-            //http.Stop();
-
-            //var code = context.Request.QueryString.Get("code");
-            //var incomingState = context.Request.QueryString.Get("state");
-
-            using HttpClient client = new HttpClient();
-
-            DeviceCodeResponse? deviceCode = await GetDeviceCode(client, clientid, istest);
-
-            if (deviceCode == null)
+            if(code == null || incomingState == null)
             {
-                Console.WriteLine("Unable to start authentication process");
+                Console.WriteLine("Invalid OAuth response");
                 return null;
             }
 
-            System.Diagnostics.ProcessStartInfo info = new System.Diagnostics.ProcessStartInfo();
-            info.FileName = deviceCode.verification_uri;
-            info.UseShellExecute = true;
-
-            System.Diagnostics.Process.Start(info);
-            Console.WriteLine(deviceCode.user_code);
-
-            DateTime timeToStop = DateTime.Now.AddMinutes(deviceCode.interval);
-
-            TokenResponse? token = null;
-            while (DateTime.Now < timeToStop)
+            if (incomingState != state)
             {
-                if (token == null)
-                {
-                    System.Threading.Thread.Sleep(5000);
-                }
-                else
-                {
-                    break;
-                }
-
-                token = await GetToken(client, clientid, deviceCode, istest);
+                Console.WriteLine("Invalid OAuth State");
+                return null;
             }
+
+            using HttpClient client = new HttpClient();
+            TokenResponse? token = await GetToken(client, clientid, clientsecret, (code == null ? "" : code), codeVerifier, istest);
 
             if (token != null)
             {
-                if (!credPath.Exists) credPath.Create();
+                if (!credPath.Exists)
+                {
+                    credPath.Create();
+                    credPath.Attributes = FileAttributes.Archive | FileAttributes.Hidden;
+                }
                 using (StreamWriter output = new StreamWriter(Path.Combine(credPath.FullName, currentUser)))
                 {
                     token.clientid = clientid;
@@ -170,20 +148,45 @@ namespace orgmodsin
                     SetDefaultUser(currentUser);
                 }
             }
+            else
+            {
+                Console.WriteLine("Unable to get OAuth token");
+            }
 
             return token;
         }
 
-        public async static Task<DeviceCodeResponse?> GetDeviceCode(HttpClient client, string clientid, bool istest)
+        //public async static Task<DeviceCodeResponse?> GetDeviceCode(HttpClient client, string clientid, bool istest)
+        //{
+        //    using HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Post, (istest ? TEST_ENDPOINT : PROD_ENDPOINT) + "/services/oauth2/token");
+        //    using StringContent content = new StringContent(string.Format("response_type=device_code&client_id={0}&scope=api web", clientid), Encoding.UTF8, "application/x-www-form-urlencoded");
+        //    request.Content = content;
+
+        //    using HttpResponseMessage response = await client.SendAsync(request);
+
+
+        //    return JsonSerializer.Deserialize<DeviceCodeResponse>(await response.Content.ReadAsStringAsync());
+        //}
+
+        public async static Task<TokenResponse?> GetToken(HttpClient client, string clientid, string clientsecret, string code, string verifier, bool istest)
         {
             using HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Post, (istest ? TEST_ENDPOINT : PROD_ENDPOINT) + "/services/oauth2/token");
-            using StringContent content = new StringContent(string.Format("response_type=device_code&client_id={0}&scope=api web", clientid), Encoding.UTF8, "application/x-www-form-urlencoded");
+            using StringContent content = new StringContent(string.Format("grant_type=authorization_code&client_id={0}&client_secret={3}&code={1}&&code_verifier={2}&redirect_uri={4}", clientid, code, verifier, clientsecret, Uri.EscapeDataString(redirectUri)), Encoding.UTF8, "application/x-www-form-urlencoded");
             request.Content = content;
 
             using HttpResponseMessage response = await client.SendAsync(request);
 
+            TokenResponse? token = null;
+            if (response.StatusCode == System.Net.HttpStatusCode.OK)
+            {
+                token = JsonSerializer.Deserialize<TokenResponse>(await response.Content.ReadAsStringAsync());
+            }
+            else
+            {
+                Console.WriteLine(await response.Content.ReadAsStringAsync());
+            }
 
-            return JsonSerializer.Deserialize<DeviceCodeResponse>(await response.Content.ReadAsStringAsync());
+            return token;
         }
 
         public async static Task<TokenResponse?> GetToken(HttpClient client, string clientid, DeviceCodeResponse deviceCode, bool istest)
@@ -215,43 +218,43 @@ namespace orgmodsin
             return JsonSerializer.Deserialize<DeviceCodeResponse>(await response.Content.ReadAsStringAsync());
         }
 
+        public static int GetRandomUnusedPort()
+        {
+            var listener = new TcpListener(IPAddress.Loopback, 0);
+            listener.Start();
+            var port = ((IPEndPoint)listener.LocalEndpoint).Port;
+            listener.Stop();
+            return port;
+        }
 
-        //public static int GetRandomUnusedPort()
-        //{
-        //    var listener = new TcpListener(IPAddress.Loopback, 0);
-        //    listener.Start();
-        //    var port = ((IPEndPoint)listener.LocalEndpoint).Port;
-        //    listener.Stop();
-        //    return port;
-        //}
+        private static string GenerateRandomDataBase64url(uint length)
+        {
+            RandomNumberGenerator rng = RandomNumberGenerator.Create();
+            byte[] bytes = new byte[length];
+            rng.GetBytes(bytes);
+            return Base64UrlEncodeNoPadding(bytes);
+        }
 
-        //private static string GenerateRandomDataBase64url(uint length)
-        //{
-        //    RNGCryptoServiceProvider rng = new RNGCryptoServiceProvider();
-        //    byte[] bytes = new byte[length];
-        //    rng.GetBytes(bytes);
-        //    return Base64UrlEncodeNoPadding(bytes);
-        //}
+        private static byte[] Sha256Ascii(string text)
+        {
+            byte[] bytes = Encoding.ASCII.GetBytes(text);
+            using (SHA256 sha256 = SHA256.Create())
+            {
+                return sha256.ComputeHash(bytes);
+            }
+        }
 
-        //private static byte[] Sha256Ascii(string text)
-        //{
-        //    byte[] bytes = Encoding.ASCII.GetBytes(text);
-        //    using (SHA256Managed sha256 = new SHA256Managed())
-        //    {
-        //        return sha256.ComputeHash(bytes);
-        //    }
-        //}
-        //private static string Base64UrlEncodeNoPadding(byte[] buffer)
-        //{
-        //    string base64 = Convert.ToBase64String(buffer);
+        private static string Base64UrlEncodeNoPadding(byte[] buffer)
+        {
+            string base64 = Convert.ToBase64String(buffer);
 
-        //    // Converts base64 to base64url.
-        //    base64 = base64.Replace("+", "-");
-        //    base64 = base64.Replace("/", "_");
-        //    // Strips padding.
-        //    base64 = base64.Replace("=", "");
+            // Converts base64 to base64url.
+            base64 = base64.Replace("+", "-");
+            base64 = base64.Replace("/", "_");
+            // Strips padding.
+            base64 = base64.Replace("=", "");
 
-        //    return base64;
-        //}
+            return base64;
+        }
     }
 }

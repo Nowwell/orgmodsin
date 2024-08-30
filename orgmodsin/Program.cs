@@ -73,7 +73,7 @@ namespace orgmodsin
 
             DateTime modifiedSince = DateTime.Now;
 
-            if (list == false)
+            if (list == false && needsToAuth == false)
             {
                 if (string.IsNullOrEmpty(ms))
                 {
@@ -97,6 +97,9 @@ namespace orgmodsin
                     Console.WriteLine("Authentication failure.");
                     return;
                 }
+
+                Console.WriteLine("Authentication complete. Please run again with desired parameters");
+                return;
             }
             else
             {
