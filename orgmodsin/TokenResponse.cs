@@ -12,5 +12,7 @@ namespace orgmodsin
         public string id { get; set; } = "";
         public string token_type { get; set; } = "";
         public string issued_at { get; set; } = "";
+        public string clientid { get; set; } = "";
+        public string clientsecret { get; set; } = "";
     }
 }

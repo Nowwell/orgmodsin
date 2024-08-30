@@ -14,6 +14,11 @@ _Authenticate a user_
 ```
 orgmodsin --alias myuser --clientid "client id" --clientsecret "client secret"
 ```
+_List the org's metadata types_
+```
+orgmodsin --user myuser --api 61
+```
+
 _Go through all of the Org's metadata_
 ```
 orgmodsin --user myuser --ms "2015-03-23 19:45:00 -7" --api 61

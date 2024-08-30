@@ -14,6 +14,10 @@ namespace orgmodsin
             string excludes = "";
             double api = 61;
             string ms = "";
+            bool list = false;
+
+            string clientid = "";
+            string clientsecret = "";
 
             for (int i = 0; i < args.Length; i++)
             {
@@ -31,6 +35,17 @@ namespace orgmodsin
                     needsToAuth = true;
                     chosenUser = args[++i];
                 }
+                if ((args[i] == "--clientid" || args[i] == "-a") && i + 1 < args.Length)
+                {
+                    needsToAuth = true;
+                    clientid = args[++i];
+                }
+                if ((args[i] == "--clientsecret" || args[i] == "-a") && i + 1 < args.Length)
+                {
+                    needsToAuth = true;
+                    clientsecret = args[++i];
+                }
+
                 if ((args[i] == "--include" || args[i] == "-i") && i + 1 < args.Length)
                 {
                     includes = args[++i];
@@ -47,32 +62,37 @@ namespace orgmodsin
                 {
                     ms = args[++i];
                 }
+                if (args[i] == "--list")
+                {
+                    list = true;
+                }
             }
 
             if(string.IsNullOrEmpty(excludes) && excludes.Trim().ToLower() != "none")
             {
                 excludes = "SControl,InstalledPackage";
             }
+            DateTime modifiedSince = DateTime.Now;
 
-            ms = DateTime.Now.AddDays(-5).ToString("R");
-
-            if (string.IsNullOrEmpty(ms))
+            if (list == false)
             {
-                Console.WriteLine("the --ms (Modified since) flag is required");
-                return;
-            }
+                if (string.IsNullOrEmpty(ms))
+                {
+                    Console.WriteLine("the --ms (Modified since) flag is required");
+                    return;
+                }
 
-            DateTime modifiedSince;
-            if (!DateTime.TryParse(ms, out modifiedSince))
-            {
-                Console.WriteLine("Modified since datetime is invalid");
-                return;
+                if (!DateTime.TryParse(ms, out modifiedSince))
+                {
+                    Console.WriteLine("Modified since datetime is invalid");
+                    return;
+                }
             }
 
             TokenResponse? token = null;
             if (needsToAuth == true)
             {
-                token = await Authentication.Authenticate(chosenUser);
+                token = await Authentication.Authenticate(chosenUser, clientid, clientsecret);
                 if (token == null)
                 {
                     Console.WriteLine("Authentication failure.");
@@ -123,7 +143,7 @@ namespace orgmodsin
             if (metadata.Contains("Session not found"))
             {
                 Console.WriteLine("Authentication token is expired, please reauthenticate");
-                token = await Authentication.Authenticate(chosenUser);
+                token = await Authentication.Authenticate(chosenUser, token);
                 if (token == null)
                 {
                     Console.WriteLine("Authentication failure.");
@@ -134,6 +154,22 @@ namespace orgmodsin
             }
 
             mdos = ParseMetadataObjects(metadata);
+
+            if(list == true)
+            {
+                using (StreamWriter output = new StreamWriter("types.csv"))
+                {
+                    output.WriteLine("xmlName, directoryName, suffix, inFolder, metaFile, childXmlNames");
+                    foreach (MetadataObject result in mdos)
+                    {
+                        output.WriteLine(result.ToString());
+                    }
+                    output.Flush();
+                }
+
+                return;
+            }
+
 
             Queue<MetadataQuery> query = CreateQueries(includeList, excludeList, mdos);
 

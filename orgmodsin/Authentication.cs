@@ -16,8 +16,6 @@ namespace orgmodsin
         private readonly static string DIRNAME = ".sfc";
         private readonly static string PROD_ENDPOINT = "https://login.salesforce.com";//https://publicissapient296-dev-ed.my.salesforce.com
         //private readonly static string TEST_ENDPOINT = "https://test.salesforce.com";
-        private readonly static string CLIENTID = "3MVG9szVa2RxsqBaFfy.QEDHf2vDia__JDsaFvn0p5jldHqxf5.I_5IiwAEq1Yw3M00GPEKjbcHbQKjwwPmga";//"3MVG9gTv.DiE8cKRZOOKNIsODKw27hZrbQ7KHJfDKTVlfiqOM0XwgTztju0BqLn71IsJcke.iTqVKeOg4TtCk";
-        //private readonly static string CLIENTSECRET = "F3112592DF897172563007F352F1FE4D414FBE0E63EEA92609899F6000AEDA57";
 
         private static string? homePath = IsLinux ? Environment.GetEnvironmentVariable("HOME") : Environment.ExpandEnvironmentVariables("%HOMEDRIVE%%HOMEPATH%");
 
@@ -68,10 +66,14 @@ namespace orgmodsin
             return token;
         }
 
-        public async static Task<TokenResponse?> Authenticate(string currentUser)
+        public async static Task<TokenResponse?> Authenticate(string currentUser, TokenResponse token)
         {
-            string clientid = HttpUtility.UrlEncode(CLIENTID);
+            return await Authenticate(currentUser, token.clientid, token.clientsecret);
+        }
 
+        public async static Task<TokenResponse?> Authenticate(string currentUser, string clientid, string clientsecret)
+        {
+            clientid = HttpUtility.UrlEncode(clientid);
 
             //string state = GenerateRandomDataBase64url(32);
             //string codeVerifier = GenerateRandomDataBase64url(32);
@@ -116,11 +118,6 @@ namespace orgmodsin
             //var code = context.Request.QueryString.Get("code");
             //var incomingState = context.Request.QueryString.Get("state");
 
-
-
-
-
-
             using HttpClient client = new HttpClient();
 
             DeviceCodeResponse? deviceCode = await GetDeviceCode(client, clientid);
@@ -160,6 +157,8 @@ namespace orgmodsin
                 if (!credPath.Exists) credPath.Create();
                 using (StreamWriter output = new StreamWriter(Path.Combine(credPath.FullName, currentUser)))
                 {
+                    token.clientid = clientid;
+                    token.clientsecret = clientsecret;
                     output.WriteLine(JsonSerializer.Serialize(token));
                     output.Flush();
                 }
