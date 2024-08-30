@@ -35,7 +35,7 @@ orgmodsin --user myuser --exclude "SObject,Report,Dashboard" --ms "2015-03-23 19
 Notes:
 include takes precedence over exclude, and if both are present exclude will be ignored.
 
-To specify a sandbox use the "--test" switch
+To specify a sandbox use the "--sandbox" switch
 
 ## Metadata Types
 [Salesforce Metadata Types](https://developer.salesforce.com/docs/atlas.en-us.api_meta.meta/api_meta/meta_types_list.htm)

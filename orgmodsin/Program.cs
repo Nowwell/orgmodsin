@@ -65,7 +65,7 @@ namespace orgmodsin
                 {
                     list = true;
                 }
-                if (args[i] == "--test")
+                if (args[i] == "--sandbox")
                 {
                     istest = true;
                 }
