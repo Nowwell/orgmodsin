@@ -14,8 +14,8 @@ namespace orgmodsin
     {
         static readonly bool IsLinux = (Environment.OSVersion.Platform == PlatformID.Unix || Environment.OSVersion.Platform == PlatformID.MacOSX);
 
-        private readonly static string DIRNAME = ".sfc";
-        private readonly static string PROD_ENDPOINT = "https://login.salesforce.com";//https://publicissapient296-dev-ed.my.salesforce.com
+        private readonly static string DIRNAME = ".orgmod";
+        private readonly static string PROD_ENDPOINT = "https://login.salesforce.com";
         private readonly static string TEST_ENDPOINT = "https://test.salesforce.com";
 
         private static string? homePath = IsLinux ? Environment.GetEnvironmentVariable("HOME") : Environment.ExpandEnvironmentVariables("%HOMEDRIVE%%HOMEPATH%");

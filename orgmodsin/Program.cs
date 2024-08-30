@@ -44,7 +44,6 @@ namespace orgmodsin
                     needsToAuth = true;
                     clientsecret = args[++i];
                 }
-
                 if ((args[i] == "--include" || args[i] == "-i") && i + 1 < args.Length)
                 {
                     includes = args[++i];
