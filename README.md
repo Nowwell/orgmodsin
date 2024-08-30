@@ -32,7 +32,10 @@ _Excludes certain metadata types in your search_
 orgmodsin --user myuser --exclude "SObject,Report,Dashboard" --ms "2015-03-23 19:45:00 -7" --api 61
 ```
 
-Note: include takes precedence over exclude, and if both are present exclude will be ignored.
+Notes:
+include takes precedence over exclude, and if both are present exclude will be ignored.
 
-Metadata Types are listed here:
+To specify a sandbox use the "--test" switch
+
+## Metadata Types
 [Salesforce Metadata Types](https://developer.salesforce.com/docs/atlas.en-us.api_meta.meta/api_meta/meta_types_list.htm)

@@ -13,6 +13,7 @@ namespace orgmodsin
             double api = 61;
             string ms = "";
             bool list = false;
+            bool istest = false;
 
             string clientid = "";
             string clientsecret = "";
@@ -64,6 +65,11 @@ namespace orgmodsin
                 {
                     list = true;
                 }
+                if (args[i] == "--test")
+                {
+                    istest = true;
+                }
+
             }
 
             DateTime modifiedSince = DateTime.Now;
@@ -86,7 +92,7 @@ namespace orgmodsin
             TokenResponse? token = null;
             if (needsToAuth == true)
             {
-                token = await Authentication.Authenticate(chosenUser, clientid, clientsecret);
+                token = await Authentication.Authenticate(chosenUser, clientid, clientsecret, istest);
                 if (token == null)
                 {
                     Console.WriteLine("Authentication failure.");
@@ -137,7 +143,7 @@ namespace orgmodsin
             if (metadata.Contains("Session not found"))
             {
                 Console.WriteLine("Authentication token is expired, please reauthenticate");
-                token = await Authentication.Authenticate(chosenUser, token);
+                token = await Authentication.Authenticate(chosenUser, token, istest);
                 if (token == null)
                 {
                     Console.WriteLine("Authentication failure.");

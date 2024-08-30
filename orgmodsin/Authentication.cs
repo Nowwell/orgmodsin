@@ -5,6 +5,7 @@ using System.Text.Json;
 using System.Web;
 using System.Security.Cryptography;
 using System.Diagnostics;
+using System.Collections.Generic;
 
 namespace orgmodsin
 {
@@ -15,7 +16,7 @@ namespace orgmodsin
 
         private readonly static string DIRNAME = ".sfc";
         private readonly static string PROD_ENDPOINT = "https://login.salesforce.com";//https://publicissapient296-dev-ed.my.salesforce.com
-        //private readonly static string TEST_ENDPOINT = "https://test.salesforce.com";
+        private readonly static string TEST_ENDPOINT = "https://test.salesforce.com";
 
         private static string? homePath = IsLinux ? Environment.GetEnvironmentVariable("HOME") : Environment.ExpandEnvironmentVariables("%HOMEDRIVE%%HOMEPATH%");
 
@@ -66,12 +67,12 @@ namespace orgmodsin
             return token;
         }
 
-        public async static Task<TokenResponse?> Authenticate(string currentUser, TokenResponse token)
+        public async static Task<TokenResponse?> Authenticate(string currentUser, TokenResponse token, bool istest)
         {
-            return await Authenticate(currentUser, token.clientid, token.clientsecret);
+            return await Authenticate(currentUser, token.clientid, token.clientsecret, istest);
         }
 
-        public async static Task<TokenResponse?> Authenticate(string currentUser, string clientid, string clientsecret)
+        public async static Task<TokenResponse?> Authenticate(string currentUser, string clientid, string clientsecret, bool istest)
         {
             clientid = HttpUtility.UrlEncode(clientid);
 
@@ -120,7 +121,7 @@ namespace orgmodsin
 
             using HttpClient client = new HttpClient();
 
-            DeviceCodeResponse? deviceCode = await GetDeviceCode(client, clientid);
+            DeviceCodeResponse? deviceCode = await GetDeviceCode(client, clientid, istest);
 
             if (deviceCode == null)
             {
@@ -149,7 +150,7 @@ namespace orgmodsin
                     break;
                 }
 
-                token = await GetToken(client, clientid, deviceCode);
+                token = await GetToken(client, clientid, deviceCode, istest);
             }
 
             if (token != null)
@@ -173,9 +174,9 @@ namespace orgmodsin
             return token;
         }
 
-        public async static Task<DeviceCodeResponse?> GetDeviceCode(HttpClient client, string clientid)
+        public async static Task<DeviceCodeResponse?> GetDeviceCode(HttpClient client, string clientid, bool istest)
         {
-            using HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Post, PROD_ENDPOINT + "/services/oauth2/token");
+            using HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Post, (istest ? TEST_ENDPOINT : PROD_ENDPOINT) + "/services/oauth2/token");
             using StringContent content = new StringContent(string.Format("response_type=device_code&client_id={0}&scope=api web", clientid), Encoding.UTF8, "application/x-www-form-urlencoded");
             request.Content = content;
 
@@ -185,9 +186,9 @@ namespace orgmodsin
             return JsonSerializer.Deserialize<DeviceCodeResponse>(await response.Content.ReadAsStringAsync());
         }
 
-        public async static Task<TokenResponse?> GetToken(HttpClient client, string clientid, DeviceCodeResponse deviceCode)
+        public async static Task<TokenResponse?> GetToken(HttpClient client, string clientid, DeviceCodeResponse deviceCode, bool istest)
         {
-            using HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Post, PROD_ENDPOINT + "/services/oauth2/token");
+            using HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Post, (istest ? TEST_ENDPOINT : PROD_ENDPOINT) + "/services/oauth2/token");
             using StringContent content = new StringContent(string.Format("grant_type=device&client_id={0}&code={1}", clientid, deviceCode.device_code), Encoding.UTF8, "application/x-www-form-urlencoded");
             request.Content = content;
 
@@ -202,9 +203,9 @@ namespace orgmodsin
             return token;
         }
 
-        public async static Task<DeviceCodeResponse?> GetTokenFromRefresh(HttpClient client, string clientid, string clientSecret, string refreshToken)
+        public async static Task<DeviceCodeResponse?> GetTokenFromRefresh(HttpClient client, string clientid, string clientSecret, string refreshToken, bool istest)
         {
-            using HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Post, PROD_ENDPOINT + "/services/oauth2/token");
+            using HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Post, (istest ? TEST_ENDPOINT : PROD_ENDPOINT) + "/services/oauth2/token");
             using StringContent content = new StringContent(string.Format("response_type=refresh_token&client_id={0}&client_secret={1}&refresh_token={2}", clientid, clientSecret, refreshToken), Encoding.UTF8, "application/x-www-form-urlencoded");
             request.Content = content;
 
