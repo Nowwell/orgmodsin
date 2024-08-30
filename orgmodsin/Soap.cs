@@ -1,11 +1,16 @@
+using orgmodsin;
+using System.Numerics;
 using System.Text;
 using System.Xml.Serialization;
 
-public class Soap
+namespace orgmodsin
 {
-    public async static Task<String> DescribeMetadata(HttpClient client, TokenResponse token)
+
+    public class Soap
     {
-        string soapBody = string.Format(@"<?xml version=""1.0"" encoding=""utf-8""?>
+        public async static Task<String> DescribeMetadata(HttpClient client, TokenResponse token, double version, DateTime modifiedSince)
+        {
+            string soapBody = string.Format(@"<?xml version=""1.0"" encoding=""utf-8""?>
 <soapenv:Envelope xmlns:soapenv=""http://schemas.xmlsoap.org/soap/envelope/"" xmlns:tns=""http://soap.sforce.com/2006/04/metadata"">
 <soapenv:Header>
 <tns:SessionHeader>
@@ -14,41 +19,104 @@ public class Soap
 </soapenv:Header>
 <soapenv:Body>
 <tns:describeMetadata>
-<asOfVersion>61.0</asOfVersion>
+<asOfVersion>{1:F1}</asOfVersion>
 </tns:describeMetadata>
 </soapenv:Body>
-</soapenv:Envelope>", token.access_token);
+</soapenv:Envelope>", token.access_token, version);
 
-        try
-        {
-
-            using (HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Post, token.instance_url + "/services/Soap/m/61.0"))
+            try
             {
-                soapBody = soapBody.Replace("\n", "").Replace("\r", "");
-                using (StringContent content = new StringContent(soapBody, Encoding.UTF8, "text/xml"))
+
+                using (HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Post, token.instance_url + "/services/Soap/m/61.0"))
                 {
-                    request.Headers.Add("Accept", "text/xml");
-                    request.Headers.Add("charset", "UTF-8");
-                    request.Headers.Add("SOAPAction", "login");
-                    request.Content = content;
-
-                    using (HttpResponseMessage response = await client.SendAsync(request))
+                    soapBody = soapBody.Replace("\n", "").Replace("\r", "");
+                    using (StringContent content = new StringContent(soapBody, Encoding.UTF8, "text/xml"))
                     {
-                        response.EnsureSuccessStatusCode();
-                        string retValue = await response.Content.ReadAsStringAsync();
+                        request.Headers.Add("Accept", "text/xml");
+                        request.Headers.Add("charset", "UTF-8");
+                        request.Headers.Add("SOAPAction", "login");
+                        request.Headers.Add("If-Modified-Since", modifiedSince.ToString("R"));//Wish it supported this... :(
+                        request.Content = content;
 
-                        return retValue;
+                        using (HttpResponseMessage response = await client.SendAsync(request))
+                        {
+                            response.EnsureSuccessStatusCode();
+                            string retValue = await response.Content.ReadAsStringAsync();
+
+                            return retValue;
+                        }
                     }
                 }
             }
+            catch (Exception e)
+            {
+                Console.WriteLine(e.Message);
+            }
+
+            return "";
         }
-        catch (Exception e)
+
+        public async static Task<String> ListMetadata(HttpClient client, TokenResponse token, MetadataQuery[] mdo, double version, DateTime modifiedSince)
         {
-            Console.WriteLine(e.Message);
+
+            string queryTemplate = @"
+<listMetadataQuery>
+    <type>{0}</type>
+    <folder>{1}</folder>
+</listMetadataQuery>";
+            string query = "";
+            for(int i = 0; i < 3 && i < mdo.Length; i++)
+            {
+                query += string.Format(queryTemplate, mdo[i].type, mdo[i].folder);
+            }
+
+        string soapBody = string.Format(@"<?xml version=""1.0"" encoding=""utf-8""?>
+<soapenv:Envelope xmlns:soapenv=""http://schemas.xmlsoap.org/soap/envelope/"" xmlns:tns=""http://soap.sforce.com/2006/04/metadata"">
+    <soapenv:Header>
+        <tns:SessionHeader>
+            <tns:sessionId>{0}</tns:sessionId>
+        </tns:SessionHeader>
+    </soapenv:Header>
+    <soapenv:Body>
+        <tns:listMetadata>
+            {2}
+            <asOfVersion>{1:F1}</asOfVersion>
+        </tns:listMetadata>
+    </soapenv:Body>
+</soapenv:Envelope>", token.access_token, version, query);
+
+            try
+            {
+
+                using (HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Post, token.instance_url + "/services/Soap/m/61.0"))
+                {
+                    soapBody = soapBody.Replace("\n", "").Replace("\r", "");
+                    using (StringContent content = new StringContent(soapBody, Encoding.UTF8, "text/xml"))
+                    {
+                        request.Headers.Add("Accept", "text/xml");
+                        request.Headers.Add("charset", "UTF-8");
+                        request.Headers.Add("SOAPAction", "login");
+                        request.Headers.Add("If-Modified-Since", modifiedSince.ToString("R"));//Wish it supported this... :(
+                        request.Content = content;
+
+                        using (HttpResponseMessage response = await client.SendAsync(request))
+                        {
+                            response.EnsureSuccessStatusCode();
+                            string retValue = await response.Content.ReadAsStringAsync();
+
+                            return retValue;
+                        }
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e.Message);
+            }
+
+            return "";
         }
 
-        return "";
+
     }
-
-
 }

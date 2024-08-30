@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "orgmodsin": {
+      "commandName": "Project",
+      "commandLineArgs": "-u devorg"
+    }
+  }
+}
