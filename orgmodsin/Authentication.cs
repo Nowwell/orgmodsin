@@ -27,6 +27,12 @@ namespace orgmodsin
 <body><br><br><br><br><div><h1>Authentication successful</h1><p>You can now close this page.</p></div></body>
 </html>";
 
+        private static string HTMLError = @"<!DOCTYPE html><html><head>
+<style>body{{font-family:sans-serif;}}dt{{font-weight:bold;}}dd{{margin-bottom:10px;}}div{{margin-left:auto;margin-right:auto;width:500px;background-color:whitesmoke;padding:25px;border:1px solid black;border-radius:10px;}}</style>
+<title>Authentication failed</title></head>
+<body><br><br><br><br><div><h1>Authentication failed</h1><p>{0}</p><p>{1}</p><p>You can now close this page.</p></div></body>
+</html>";
+        
         public static bool DoesUserExist(string user)
         {
             return new FileInfo(Path.Combine(credPath.FullName, user)).Exists;
@@ -87,13 +93,17 @@ namespace orgmodsin
             string codeVerifier = GenerateRandomDataBase64url(32);
             string codeChallenge = Base64UrlEncodeNoPadding(Sha256Ascii(codeVerifier));
 
+            HttpListenerTimeoutManager manager;
             // Creates an HttpListener to listen for requests on that redirect URI.
             var http = new HttpListener();
+            manager = http.TimeoutManager;
+            manager.IdleConnection = TimeSpan.FromMinutes(2);
+            if(!IsLinux) manager.HeaderWait = TimeSpan.FromMinutes(2);
             http.Prefixes.Add(redirectUri);
             http.Start();
 
             string authorizationRequest = string.Format("{0}/services/oauth2/authorize?response_type=code&scope=api+web&redirect_uri={1}&client_id={2}&state={3}&code_challenge={4}",
-                PROD_ENDPOINT,
+                istest ? TEST_ENDPOINT : PROD_ENDPOINT,
                 Uri.EscapeDataString("http://localhost:1717/"),
                 clientid,
                 state,
@@ -108,6 +118,25 @@ namespace orgmodsin
 
             HttpListenerResponse response = context.Response;
             string responseString = HTML;
+            bool wasError = false;
+
+            string? code = context.Request.QueryString.Get("code");
+            string? incomingState = context.Request.QueryString.Get("state");
+
+            if (code == null || incomingState == null)
+            {
+                wasError = true;
+                Console.WriteLine("Invalid OAuth response");
+            }
+
+            if (incomingState != state)
+            {
+                wasError = true;
+                Console.WriteLine("Invalid OAuth State");
+            }
+
+            if (wasError) responseString = string.Format(HTMLError, context.Request.QueryString.Get("error"), context.Request.QueryString.Get("error_description"));
+
             byte[] buffer = Encoding.UTF8.GetBytes(responseString);
             response.ContentLength64 = buffer.Length;
             Stream responseOutput = response.OutputStream;
@@ -115,20 +144,7 @@ namespace orgmodsin
             responseOutput.Close();
             http.Stop();
 
-            string? code = context.Request.QueryString.Get("code");
-            string? incomingState = context.Request.QueryString.Get("state");
-
-            if(code == null || incomingState == null)
-            {
-                Console.WriteLine("Invalid OAuth response");
-                return null;
-            }
-
-            if (incomingState != state)
-            {
-                Console.WriteLine("Invalid OAuth State");
-                return null;
-            }
+            if (wasError) return null;
 
             using HttpClient client = new HttpClient();
             TokenResponse? token = await GetToken(client, clientid, clientsecret, (code == null ? "" : code), codeVerifier, istest);
