@@ -41,8 +41,8 @@ To specify a sandbox use the "--sandbox" switch
 
 To use this, you'll need to configure an external client app with:
 
-callback url: http://localhost:1717/
-scopes: Manage user data via APIs (api), Manage user data via Web browsers (web)
+- callback url: http://localhost:1717/
+- scopes: Manage user data via APIs (api), Manage user data via Web browsers (web)
 
 The other default settings should be fine.
 
