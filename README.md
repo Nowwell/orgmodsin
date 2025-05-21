@@ -8,7 +8,7 @@ The number of API calls should be in the ballpark of:
 Ceiling(Number of Metadata Types / 3) + Ceiling(Number of Report Folders / 3) + Ceiling(Number of Dashboard Folders / 3) + Ceiling(Number of Email Templates Folders / 3)
 ```
 
-## How to use:
+## How to use
 
 _Authenticate a user_
 ```
@@ -36,6 +36,15 @@ Notes:
 include takes precedence over exclude, and if both are present exclude will be ignored.
 
 To specify a sandbox use the "--sandbox" switch
+
+## Configure an External Client App
+
+To use this, you'll need to configure an external client app with:
+
+callback url: http://localhost:1717/
+scopes: Manage user data via APIs (api), Manage user data via Web browsers (web)
+
+The other default settings should be fine.
 
 ## Metadata Types
 [Salesforce Metadata Types](https://developer.salesforce.com/docs/atlas.en-us.api_meta.meta/api_meta/meta_types_list.htm)
